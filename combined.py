@@ -1,9 +1,70 @@
-import csv
+"""
+=== DESCRIPTION ===
+
+The following program is meant to take in students interest in working/leading a project,
+form teams within certain constraints, and return a document containing the results.
+
+=== PROCEDURE ===
+
+Step 1)
+
+A CSV file of input is required and must contain the minimal 3 columns of information:
+
+- name of student
+- list of projects interested in 
+- list of projects intereseted in leading
+
+A checklist with all the projects listed should be used in the Google Form. If done
+correctly, the responses under "interests" in the CSV should look like this "proj1;proj4;proj5"
+
+
+Step 2)
+
+The CSV file is transformed into a 2d list with getFileMatrix(), call it inputMatrix
+
+
+Step 3)
+
+findAllProjects() finds all projects that have >0 interest by analyzing inputMatrix
+
+
+Step 4)
+
+A preference matrix is made with addStudents() where each row is a student and each
+column is a specific project. 
+
+Each element represents the level of interest a student has towards a project:
+0 = no interest, 1 = interested, leaderValue + 1 = interested in leading
+
+Leadervalue is set to be a number > total number of students in order to differentiate
+between students and leaders. 
+
+To find total unique people interested in project, the total interest can be modded by the leader value.
+
+
+Step 5)
+
+Teams are assigned based on constraints given using assignPlayersToProjects().
+
+The current method prioritizes projects with just enough interest to make a team and each
+team created is guaranteed to have 1 leader.
+
+
+Step 6)
+
+Using the results from Step 5, a CSV file is created with createCSVfile() that nicely
+organizes the different teams and their projects in a CSV file.
+
+getStudentInfo() is used to generate each student row for the CSV file based on the columns
+from the inputMatrix. This is meant to be used to include contact information.
+"""
+
+import csv,os
 
 def getFileMatrix(fileName):
     """
     INPUT
-    fileName of csv file, should be in same directory as this file
+    fileName: name of csv file, should be in same directory as this file
 
     OUTPUT
     2d list of values read from csv file
@@ -18,10 +79,10 @@ def getFileMatrix(fileName):
         
         return matrix
 
-def getHeaderAssociation(matrix):
+def getHeaderNameToColumnIndex(matrix):
     """
     INPUT:
-    2d list representing csv file
+    matrix: 2d list representing csv file
 
     OUTPUT:
     returns dict mapping headerNames to their columnIndex in the matrix
@@ -31,23 +92,23 @@ def getHeaderAssociation(matrix):
         dict[column] = index
     return dict
 
-def findAllProjects(matrix,headerAssociation,interestColumnName,leaderColumnName):
+def findAllProjects(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColumnName,leaderColumnName):
     """
     INPUT:
-    matrix: 2d list of csv file
-    headerAssociation: dict mapping headerNames to corresponding columnIndex
+    inputMatrixMinusHeaders: matrix containing only student responses in each row
+    headerNameToColumnIndex: dict mapping headerNames to corresponding columnIndex
     interestColumnName: name of column to look for project interest
     leaderColumnName: name of column to look for project leader interest
 
     OUTPUT:
-    returns sorted list of all unique projects that have any interest
+    returns sorted list of all unique projects that have any interest from students and/or leaders
     """
-    interestColumnIndex = headerAssociation[interestColumnName]
-    leaderColumnIndex = headerAssociation[leaderColumnName]
+    interestColumnIndex = headerNameToColumnIndex[interestColumnName]
+    leaderColumnIndex = headerNameToColumnIndex[leaderColumnName]
     
     interestedProjectsSet = set()
 
-    for row in matrix[1:]:
+    for row in inputMatrixMinusHeaders:
         interestProjects = row[interestColumnIndex]
         interestProjectsList = interestProjects.split(";")
 
@@ -61,49 +122,55 @@ def findAllProjects(matrix,headerAssociation,interestColumnName,leaderColumnName
     result.sort()
     return result
 
-def makeProjectAssociation(projectNames):
+def makeProjectAssociations(projectNames):
     """
     INPUT
-    list of projectNames
+    projectNames: list of projectNames
 
     OUTPUT
-    dict mapping projectNames to columnIndex for creating preference matrix
+    tuple of dicts: (projectNames to columnIndex, columnIndex to projectNames)
+
+    Column Indices are generated here for use in creating a preference matrix
     """
-    projectAssociations = {}
+    projectNameToIndex = {}
+    indexToProjectName = {}
     index = 0
 
     for projectName in projectNames:
-        projectAssociations[projectName] = index
+        projectNameToIndex[projectName] = index
+        indexToProjectName[index] = projectName
         index += 1
     
-    return projectAssociations
+    return (projectNameToIndex,indexToProjectName)
 
-def addStudents(matrix,projectAssociations,headerAssociations,leaderValue,interestColumnName,leaderColumnName,nameColumnName):
+def addStudents(inputMatrixMinusHeaders,projectNamesToColumnIndex,headerNameToColumnIndex,
+    leaderValue,interestColumnName,leaderColumnName,nameColumnName
+):
     """
     INPUT
-    matrix: 2d list of csv file
-    leaderValue: value added to interested leaders for a certain project
+    leaderValue: value added to interested leaders for a certain project (to differentiate between normal students)
 
     OUTPUT
     preferences: 2d list where each student represents a student and each column represents a project.
     0 = no interest, 1 = interest, leaderValue + 1 = interested in leading project
-    studentAssociations: Dict mapping student names to the corresponding row index in preferences
+
+    studentRowIndexToStudentName: Dict mapping student names to the corresponding row index in preferences matrix
     """
-    studentAssociations = {}
+    studentRowIndexToStudentName = {}
     studentIndex = 0
 
-    totalProjects = len(projectAssociations.keys())
+    totalProjects = len(projectNamesToColumnIndex.keys())
 
-    nameColumnIndex = headerAssociations[nameColumnName]
-    interestColumnIndex = headerAssociations[interestColumnName]
-    leaderColumnIndex = headerAssociations[leaderColumnName]
+    nameColumnIndex = headerNameToColumnIndex[nameColumnName]
+    interestColumnIndex = headerNameToColumnIndex[interestColumnName]
+    leaderColumnIndex = headerNameToColumnIndex[leaderColumnName]
 
     preferences = []
 
-    for studentRow in matrix[1:]:
+    for studentRow in inputMatrixMinusHeaders:
         personSummary = [0] * totalProjects
 
-        studentAssociations[studentRow[nameColumnIndex]] = studentIndex
+        studentRowIndexToStudentName[studentIndex] = studentRow[nameColumnIndex]
         studentIndex += 1
 
         interestProjects = studentRow[interestColumnIndex]
@@ -113,33 +180,28 @@ def addStudents(matrix,projectAssociations,headerAssociations,leaderValue,intere
         leaderProjectsList = leaderProjects.split(";")
 
         for studentProject in interestProjectsList:
-            personSummary[projectAssociations[studentProject]] = 1
+            personSummary[projectNamesToColumnIndex[studentProject]] = 1
         
         for leaderProject in leaderProjectsList:
-            personSummary[projectAssociations[leaderProject]] = leaderValue + 1
+            personSummary[projectNamesToColumnIndex[leaderProject]] = leaderValue + 1
 
         preferences.append(personSummary)
     
-    return preferences, studentAssociations
+    return preferences, studentRowIndexToStudentName
 
-def summarizePreferences(matrix):
+def summarizePreferences(preferences):
     """
-    INPUT
-    matrix: 2d list containing preferences, students are rows, projects are columns
-    vals > 0 imply interest
-
     OUTPUT
-    Counts how many total students are interested in each project
-    Sorts the projects by ascending interest
-    Returns list where each element is [projectNum, numStudentsInterested]
+    summary: sorted list of tuples where each tuple contains projectNumber and the total interest in project.
+    List is stored by total interest.
     """
     summary = []
 
-    for projectNum in range(len(matrix[0])):
+    for projectNum in range(len(preferences[0])):
         projectSummary = [projectNum,0]
-        for studentNum in range(len(matrix)):
-            if matrix[studentNum][projectNum] > 0:
-                projectSummary[1] += matrix[studentNum][projectNum]
+        for studentNum in range(len(preferences)):
+            if preferences[studentNum][projectNum] > 0:
+                projectSummary[1] += preferences[studentNum][projectNum]
         summary.append(projectSummary)
     
     summary.sort(key = lambda x: x[1])
@@ -152,10 +214,10 @@ def findBestSplit(count,minSize,maxSize):
     minSize: smallest team size considered to make equal teams
     maxSize: teams cannot surpass this size
 
-    OUTPUT:
-    returns most distribution as tuple
-    and remainder means that many teams will have an extra team member
-    Priority is given to team sizes closer to maxSize
+    OUTPUT: (tuple)
+    (bestSize, bestRemainder): size of each team, how many teams will have an extra member
+
+    Goal is to minimize remainder, and maxamize team size
     """
     bestSize = None
     bestRemainder = None
@@ -176,23 +238,19 @@ def findBestSplit(count,minSize,maxSize):
 def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeamSize,maxTeamsPerProject,leaderValue):
     """
     INPUT
-    summary: list of projects and students interested in ascending order
-    preferences: 2d matrix of students showing what project each student is interested in
-    studentCount: self-explanatory
-    minTeamSize: minimum team size required otherwise project is not happening
-    maxTeamSize: absolute max team size that must not be overcome
+    minTeamSize: minimum interest total required otherwise project is not happening
+    maxTeamSize: maximum interest total required (leaders may be converted to students)
 
-    OUTPUT
-    tuple with the following information:
+    OUTPUT (tuple)
     unluckyProjects: list of projects that do not have any teams working on them
-    projectsAssigned: dict that contains all projects, and the teams that will be working on them
+    teamsAssigned: dict that contains all projects, and the teams that will be working on them
     sadPlayerCount: number of people that have not been assigned to a team
     """
 
     # each index in peopleTaken represents person, 1 => person has project
     peopleTaken = [0] * studentCount
     unluckyProjects = []
-    projectsAssigned = {}
+    teamsAssigned = {}
     
     for currentSummaryI in range(len(summary)):
         projectSummary = summary[currentSummaryI]
@@ -263,19 +321,70 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
                 for person in team:
                     peopleTaken[person] = 1
             
-            projectsAssigned[projectSummary[0]] = teamsCreated
+            teamsAssigned[projectSummary[0]] = teamsCreated
 
     sadPlayerCount = len(peopleTaken) - sum(peopleTaken)
     unluckyProjects.sort()
     
-    return unluckyProjects,projectsAssigned,sadPlayerCount
+    return unluckyProjects,teamsAssigned,sadPlayerCount
 
+def getStudentInfo(fileMatrixWithoutHeaders,studentIndex,headerAssociations,columnsToInclude):
+    """
+    INPUT
+    fileMatrixWithoutHeaders: matrix containing initial responses without the header row
+    studentIndex: index of row corresponding to student
+    headerAssociations: dict mapping columnNames to the columnIndex in the fileMatrix
+    columnsToInclude: student responses these columns will be included
+
+    OUTPUT (string)
+    row: student responses to columns indicated from input file and formats them in CSV format
+    """
+    studentDetails = []
+
+    for columnName in columnsToInclude:
+        columnIndex = headerAssociations.get(columnName)
+        info = fileMatrixWithoutHeaders[studentIndex][columnIndex]
+
+        studentDetails.append(info)
+
+    separator = '","'
+    result = '"' + separator.join(studentDetails) + '"'
+    return result
+
+def createCSVfile(
+    fileName,teamsAssigned,matrixMinusHeader,projectIndexToProjectName,
+    headerNameToColumnIndex,columnsToInclude
+):
+    """
+    INPUT:
+    fileName: name of file to create with output
+    teamsAssigned: dict of all projects and the teams working on each
+    columnsToInclude: student responses to theses questions will be included in output
+
+    OUTPUT: 
+    None: CSV file is created with students listed under their assigned project
+    """
+    with open(fileName,"w") as file:
+        for projectIndex in teamsAssigned.keys():
+            
+            file.write(f"{projectIndexToProjectName.get(projectIndex)}\n")
+            
+            teams = teamsAssigned.get(projectIndex)
+
+            for team in teams:
+                for studentIndex in team:
+                    studentInfo = getStudentInfo(matrixMinusHeader,studentIndex,
+                        headerNameToColumnIndex,columnsToInclude
+                    )
+                    file.write(f"{studentInfo}\n")
+
+                file.write("\n")
 
 # USER INPUT
 
-CSV_FILENAME = "testCSVprocess.csv"
+INPUT_CSV_FILENAME = "testCSVfile.csv"
 INTEREST_COLUMN_NAME = "Interested?"
-LEADER_COLUMN_NAME = "Leader?"
+LEADER_COLUMN_NAME = "Leader"
 NAME_COLUMN_NAME = "Name"
 
 LEADER_VALUE = 10000
@@ -283,97 +392,158 @@ MIN_TEAM_SIZE = LEADER_VALUE + 2
 MAX_TEAM_SIZE = LEADER_VALUE + 3
 MAX_TEAMS_PER_PROJECT = 1
 
+OUTPUT_COLUMNS = ["Name","Random Question?"]
+OUTPUT_FILENAME = "CSVresult.csv"
+
 # RUN USER CODE
 
 RUN_USER_CODE = True
+PRINT_RESULTS = True
 
 if RUN_USER_CODE:
-    matrix = getFileMatrix(CSV_FILENAME)
-    headerAssociations = getHeaderAssociation(matrix)
-    allProjects = findAllProjects(matrix,headerAssociations,INTEREST_COLUMN_NAME,LEADER_COLUMN_NAME)
-    projectAssociations = makeProjectAssociation(allProjects)
-    preferences, studentAssociations = addStudents(
-        matrix,projectAssociations,headerAssociations,LEADER_VALUE,INTEREST_COLUMN_NAME,LEADER_COLUMN_NAME,NAME_COLUMN_NAME
-    )
-    studentCount = len(studentAssociations.keys())
-    summary = summarizePreferences(preferences)
-    unpopular, results, sadPeople = assignPlayersToProjects(
-        summary,preferences,studentCount,MIN_TEAM_SIZE,MAX_TEAM_SIZE,MAX_TEAMS_PER_PROJECT,LEADER_VALUE
+    inputMatrix = getFileMatrix(INPUT_CSV_FILENAME)
+    inputMatrixMinusHeaders = inputMatrix[1:]
+
+    headerNameToColumnIndex = getHeaderNameToColumnIndex(inputMatrix)
+    allProjectList = findAllProjects(
+        inputMatrixMinusHeaders, headerNameToColumnIndex,INTEREST_COLUMN_NAME,
+        LEADER_COLUMN_NAME
     )
 
-    print(f"\nsummary \n {summary}")
-    print(f"\nunpopularProjects: {unpopular}")
-    print(f"results: {results}")
-    print(f"sadPeople: {sadPeople}")
+    projectAssociations = makeProjectAssociations(allProjectList)
+    projectNamesToProjectIndex = projectAssociations[0]
+    projectIndexToProjectNames = projectAssociations[1]
+
+    preferences, studentNamesToRowIndex = addStudents(
+        inputMatrixMinusHeaders, projectNamesToProjectIndex, headerNameToColumnIndex,
+        LEADER_VALUE,INTEREST_COLUMN_NAME, LEADER_COLUMN_NAME, NAME_COLUMN_NAME
+    )
+
+    summary = summarizePreferences(preferences)
+
+    unpopular, projectTeams, sadPeople = assignPlayersToProjects(
+        summary, preferences, len(studentNamesToRowIndex.keys()), MIN_TEAM_SIZE,
+        MAX_TEAM_SIZE, MAX_TEAMS_PER_PROJECT, LEADER_VALUE
+    )
+
+    if PRINT_RESULTS:
+        print(f"\nsummary \n {summary}")
+        print(f"\nunpopularProjects: {unpopular}")
+        print(f"results: {projectTeams}")
+        print(f"sadPeople: {sadPeople}")
+    
+    createCSVfile(
+        OUTPUT_FILENAME,projectTeams,inputMatrixMinusHeaders,
+        projectIndexToProjectNames,headerNameToColumnIndex,OUTPUT_COLUMNS
+    )
 
 # TESTS
 
 RUN_TESTS = False
 
 if RUN_TESTS:
-    testCsvFileName = "testCSVprocess.csv"
+    testCsvFileName = "testCSVfile.csv"
     testNameColumnName = "Name"
     testInterestColumnName = "Interested?"
-    testLeaderColumnName = "Leader?"
+    testLeaderColumnName = "Leader"
+
     testLeaderValue = 10000
     testMinTeamSize = testLeaderValue + 2
     testMaxTeamSize = testLeaderValue + 3
     testMaxTeamsPerProject = 1
 
-    testMatrix = getFileMatrix(testCsvFileName)
+    testOutputColumns = ["Name","Timestamp"]
+    testOutputFilename = "testCSVResult.csv"
 
-    headerAssociations = getHeaderAssociation(testMatrix)
-    assert(len(headerAssociations) == 5)
-    assert(headerAssociations[testNameColumnName] == 1)
-    assert(headerAssociations[testInterestColumnName] == 3)
-    assert(headerAssociations[testLeaderColumnName] == 4)
+    try:
+        os.remove(testOutputFilename)
+        print("deleted existing output file")
+    except:
+        print("no output file exists before execution")
 
-    allProjects = findAllProjects(
-        testMatrix,headerAssociations,testInterestColumnName,testLeaderColumnName
+
+    testInputMatrix = getFileMatrix(testCsvFileName)
+    testInputMatrixMinusHeaders = testInputMatrix[1:]
+
+    testHeaderNameToColumnIndex = getHeaderNameToColumnIndex(testInputMatrix)
+    assert(len(testHeaderNameToColumnIndex) == 5)
+    assert(testHeaderNameToColumnIndex[testNameColumnName] == 1)
+    assert(testHeaderNameToColumnIndex[testInterestColumnName] == 3)
+    assert(testHeaderNameToColumnIndex[testLeaderColumnName] == 4)
+
+    testAllProjectList = findAllProjects(
+        testInputMatrixMinusHeaders,testHeaderNameToColumnIndex,testInterestColumnName,testLeaderColumnName
     )
-    assert(allProjects == ["Blu","Gre","Red","Yel"])
+    assert(testAllProjectList == ["Blu","Gre","Red","Yel"])
 
-    projectAssociations = makeProjectAssociation(allProjects)
-    assert(len(projectAssociations.keys()) == 4)
-    assert(projectAssociations["Blu"] == 0)
-    assert(projectAssociations["Gre"] == 1)
-    assert(projectAssociations["Red"] == 2)
-    assert(projectAssociations["Yel"] == 3)
+    testProjectAssociations = makeProjectAssociations(testAllProjectList)
+    testProjectNamesToProjectIndex = testProjectAssociations[0]
+    testProjectIndexToProjectNames = testProjectAssociations[1]
 
-    preferences, studentAssociations = addStudents(
-        testMatrix,projectAssociations,headerAssociations,testLeaderValue,
+    assert(len(testProjectNamesToProjectIndex.keys()) == 4)
+    assert(testProjectNamesToProjectIndex["Blu"] == 0)
+    assert(testProjectNamesToProjectIndex["Gre"] == 1)
+    assert(testProjectNamesToProjectIndex["Red"] == 2)
+    assert(testProjectNamesToProjectIndex["Yel"] == 3)
+
+    assert(len(testProjectIndexToProjectNames.keys()) == 4)
+    assert(testProjectIndexToProjectNames.get(0) == "Blu")
+    assert(testProjectIndexToProjectNames.get(1) == "Gre")
+    assert(testProjectIndexToProjectNames.get(2) == "Red")
+    assert(testProjectIndexToProjectNames.get(3) == "Yel")
+
+    testPreferences, testStudentNamesToRowIndex = addStudents(
+        testInputMatrixMinusHeaders,testProjectNamesToProjectIndex,testHeaderNameToColumnIndex,testLeaderValue,
         testInterestColumnName,testLeaderColumnName,testNameColumnName
     )
 
-    assert(preferences == [
+    assert(testPreferences == [
         [1,                 0,                  testLeaderValue+1,  0           ],
         [testLeaderValue+1, testLeaderValue+1,  0,                  0           ],
         [testLeaderValue+1, 1,                  testLeaderValue+1,  testLeaderValue+1]
     ])
 
-    assert(len(studentAssociations.keys()) == 3)
-    assert(studentAssociations["Breach"] == 0)
-    assert(studentAssociations["Cypher"] == 1)
-    assert(studentAssociations["Raze"] == 2)
+    assert(len(testStudentNamesToRowIndex.keys()) == 3)
+    assert(testStudentNamesToRowIndex.get(0) == "Breach")
+    assert(testStudentNamesToRowIndex.get(1) == "Cypher")
+    assert(testStudentNamesToRowIndex.get(2) == "Raze")
 
-    summary = summarizePreferences(preferences)
-    assert(summary == [
+    testSummary = summarizePreferences(testPreferences)
+    assert(testSummary == [
         [3,testLeaderValue + 1],
         [1,testLeaderValue + 1 + 1],
         [2,2*(testLeaderValue + 1)],
         [0,2*(testLeaderValue + 1) + 1]
     ])
 
-    unpopular, results, sadPeople = assignPlayersToProjects(
-        summary, preferences, len(studentAssociations.keys()), testMinTeamSize, 
+    testUnpopular, testProjectTeams, testSadPeople = assignPlayersToProjects(
+        testSummary, testPreferences, len(testStudentNamesToRowIndex.keys()), testMinTeamSize, 
         testMaxTeamSize, testMaxTeamsPerProject, testLeaderValue
     )
 
-    assert(unpopular == [0,2,3])
-    assert(len(results.keys()) == 1)
-    onlyTeam = results[1][0]
-    onlyTeam.sort()
+    assert(testUnpopular == [0,2,3])
+    assert(len(testProjectTeams.keys()) == 1)
 
-    assert(onlyTeam == [1,2])
+    testOnlyTeam = testProjectTeams[1][0]
+    testOnlyTeam.sort()
 
-    assert(sadPeople == 1)
+    assert(testOnlyTeam == [1,2])
+    assert(testSadPeople == 1)
+
+    testResult = getStudentInfo(
+        testInputMatrixMinusHeaders,0,
+        testHeaderNameToColumnIndex,testOutputColumns
+    )
+    assert(testResult == '"Breach","2022/11/10 5:45:46 PM PST"')
+
+    createCSVfile(
+        testOutputFilename,testProjectTeams,testInputMatrixMinusHeaders,
+        testProjectIndexToProjectNames,testHeaderNameToColumnIndex,testOutputColumns
+    )
+
+    testResult = getFileMatrix(testOutputFilename)
+    assert(testResult[0] == ["Gre"])
+    assert(testResult[1] == ["Cypher","2022/11/10 6:45:46 PM PST"])
+    assert(testResult[2] == ["Raze","2022/11/10 7:45:46 PM PST"])
+
+    print("tests passed")
