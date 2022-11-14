@@ -1,71 +1,9 @@
-"""
-=== DESCRIPTION ===
-
-The following program is meant to take in students interest in working/leading a project,
-form teams within certain constraints, and return a document containing the results.
-
-=== PROCEDURE ===
-
-Step 1)
-
-A CSV file of input is required and must contain the minimal 3 columns of information:
-
-- name of student
-- list of projects interested in 
-- list of projects intereseted in leading
-
-A checklist with all the projects listed should be used in the Google Form. If done
-correctly, the responses under "interests" in the CSV should look like this "proj1;proj4;proj5"
-
-
-Step 2)
-
-The CSV file is transformed into a 2d list with getFileMatrix(), call it inputMatrix
-
-
-Step 3)
-
-findAllProjects() finds all projects that have >0 interest by analyzing inputMatrix
-
-
-Step 4)
-
-A preference matrix is made with addStudents() where each row is a student and each
-column is a specific project. 
-
-Each element represents the level of interest a student has towards a project:
-0 = no interest, 1 = interested, leaderValue + 1 = interested in leading
-
-Leadervalue is set to be a number > total number of students in order to differentiate
-between students and leaders. 
-
-To find total unique people interested in project, the total interest can be modded by the leader value.
-
-
-Step 5)
-
-Teams are assigned based on constraints given using assignPlayersToProjects().
-
-The current method prioritizes projects with just enough interest to make a team and each
-team created is guaranteed to have 1 leader.
-
-
-Step 6)
-
-Using the results from Step 5, a CSV file is created with createCSVfile() that nicely
-organizes the different teams and their projects in a CSV file.
-
-getStudentInfo() is used to generate each student row for the CSV file based on the columns
-from the inputMatrix. This is meant to be used to include contact information.
-"""
-
 import csv,os
 
 def getFileMatrix(fileName):
     """
     INPUT
     fileName: name of csv file, should be in same directory as this file
-
     OUTPUT
     2d list of values read from csv file
     """
@@ -83,7 +21,6 @@ def getHeaderNameToColumnIndex(matrix):
     """
     INPUT:
     matrix: 2d list representing csv file
-
     OUTPUT:
     returns dict mapping headerNames to their columnIndex in the matrix
     """
@@ -99,7 +36,6 @@ def findAllProjects(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColu
     headerNameToColumnIndex: dict mapping headerNames to corresponding columnIndex
     interestColumnName: name of column to look for project interest
     leaderColumnName: name of column to look for project leader interest
-
     OUTPUT:
     returns sorted list of all unique projects that have any interest from students and/or leaders
     """
@@ -115,6 +51,11 @@ def findAllProjects(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColu
         leaderProjects = row[leaderColumnIndex]
         leaderProjectsList = leaderProjects.split(";")
 
+        if interestProjectsList[0] == '':
+            interestProjectsList = []
+        if leaderProjectsList[0] == '':
+            leaderProjectsList = []
+
         for projectName in interestProjectsList + leaderProjectsList:
             interestedProjectsSet.add(projectName)
     
@@ -126,10 +67,8 @@ def makeProjectAssociations(projectNames):
     """
     INPUT
     projectNames: list of projectNames
-
     OUTPUT
     tuple of dicts: (projectNames to columnIndex, columnIndex to projectNames)
-
     Column Indices are generated here for use in creating a preference matrix
     """
     projectNameToIndex = {}
@@ -149,11 +88,9 @@ def addStudents(inputMatrixMinusHeaders,projectNamesToColumnIndex,headerNameToCo
     """
     INPUT
     leaderValue: value added to interested leaders for a certain project (to differentiate between normal students)
-
     OUTPUT
     preferences: 2d list where each student represents a student and each column represents a project.
     0 = no interest, 1 = interest, leaderValue + 1 = interested in leading project
-
     studentRowIndexToStudentName: Dict mapping student names to the corresponding row index in preferences matrix
     """
     studentRowIndexToStudentName = {}
@@ -178,6 +115,11 @@ def addStudents(inputMatrixMinusHeaders,projectNamesToColumnIndex,headerNameToCo
 
         interestProjectsList = interestProjects.split(";")
         leaderProjectsList = leaderProjects.split(";")
+
+        if interestProjectsList[0] == '':
+            interestProjectsList = []
+        if leaderProjectsList[0] == '':
+            leaderProjectsList = []
 
         for studentProject in interestProjectsList:
             personSummary[projectNamesToColumnIndex[studentProject]] = 1
@@ -213,10 +155,8 @@ def findBestSplit(count,minSize,maxSize):
     count: number of students to split
     minSize: smallest team size considered to make equal teams
     maxSize: teams cannot surpass this size
-
     OUTPUT: (tuple)
     (bestSize, bestRemainder): size of each team, how many teams will have an extra member
-
     Goal is to minimize remainder, and maxamize team size
     """
     bestSize = None
@@ -240,7 +180,6 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
     INPUT
     minTeamSize: minimum interest total required otherwise project is not happening
     maxTeamSize: maximum interest total required (leaders may be converted to students)
-
     OUTPUT (tuple)
     unluckyProjects: list of projects that do not have any teams working on them
     teamsAssigned: dict that contains all projects, and the teams that will be working on them
@@ -335,7 +274,6 @@ def getStudentInfo(fileMatrixWithoutHeaders,studentIndex,headerAssociations,colu
     studentIndex: index of row corresponding to student
     headerAssociations: dict mapping columnNames to the columnIndex in the fileMatrix
     columnsToInclude: student responses these columns will be included
-
     OUTPUT (string)
     row: student responses to columns indicated from input file and formats them in CSV format
     """
@@ -360,7 +298,6 @@ def createCSVfile(
     fileName: name of file to create with output
     teamsAssigned: dict of all projects and the teams working on each
     columnsToInclude: student responses to theses questions will be included in output
-
     OUTPUT: 
     None: CSV file is created with students listed under their assigned project
     """
@@ -382,17 +319,17 @@ def createCSVfile(
 
 # USER INPUT
 
-INPUT_CSV_FILENAME = "testCSVfile.csv"
-INTEREST_COLUMN_NAME = "Interested?"
-LEADER_COLUMN_NAME = "Leader"
-NAME_COLUMN_NAME = "Name"
+INPUT_CSV_FILENAME = ""
+INTEREST_COLUMN_NAME = ""
+LEADER_COLUMN_NAME = ""
+NAME_COLUMN_NAME = ""
 
 LEADER_VALUE = 10000
 MIN_TEAM_SIZE = LEADER_VALUE + 2
 MAX_TEAM_SIZE = LEADER_VALUE + 3
 MAX_TEAMS_PER_PROJECT = 1
 
-OUTPUT_COLUMNS = ["Name","Random Question?"]
+OUTPUT_COLUMNS = ["Name","Email"]
 OUTPUT_FILENAME = "CSVresult.csv"
 
 # RUN USER CODE
@@ -439,7 +376,7 @@ if RUN_USER_CODE:
 
 # TESTS
 
-RUN_TESTS = False
+RUN_TESTS = True
 
 if RUN_TESTS:
     testCsvFileName = "testCSVfile.csv"
