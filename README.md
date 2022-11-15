@@ -12,7 +12,7 @@ The CSV file containing the interests of the students must contain the following
 - Interested
 - Interested in Leading
 
-Example of acceptable CSV input file
+Example of acceptable CSV input file: (testCSVprocess.csv)
 
 ```
 Timestamp,Name,Random Question?,Interested?,Leader
