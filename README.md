@@ -30,6 +30,8 @@ Example of acceptable CSV input file exported from Google Sheets after import fr
 (same as file above except combined values such as "Blu;Red" are written as "Blu, Red")
 
 ```
+Timestamp,Name,Random Question?,Interested?,Leader
+
 2022/11/10 5:45:46 PM PST,Breach,Yes,"Blu, Red",Red
 2022/11/10 6:45:46 PM PST,Cypher,Yes,"Blu, Gre","Blu, Gre"
 2022/11/10 7:45:46 PM PST,Raze,No,"Red, Gre, Yel","Blu, Red, Yel"
@@ -55,10 +57,14 @@ The CSV file is transformed into a 2d list with getFileMatrix(), call it inputMa
 
 ## Step 2)
 
+convertToProperCSV() is called on inputMatrix to change elements with multiple values so that they are separated by semicolons as opposed to commas and spaces if not already in that form
+
+## Step 3)
+
 findAllProjects() finds all projects that have >0 interest by analyzing inputMatrix
 
 
-## Step 3)
+## Step 4)
 
 A preference matrix is made with addStudents() where each row is a student and each
 column is a specific project. 
@@ -74,7 +80,7 @@ between students and leaders.
 To find total unique people interested in project, the total interest can be modded by the leader value.
 
 
-## Step 4)
+## Step 5)
 
 Teams are assigned based on constraints given using assignPlayersToProjects().
 
@@ -82,7 +88,7 @@ The current method prioritizes projects with just enough interest to make a team
 team created is guaranteed to have 1 leader.
 
 
-## Step 5)
+## Step 6)
 
 Using the results from Step 5, a CSV file is created with createCSVfile() that nicely
 organizes the different teams and their projects in a CSV file.
