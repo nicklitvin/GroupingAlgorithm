@@ -354,10 +354,10 @@ def createCSVfile(
 
 # USER INPUT
 
-INPUT_CSV_FILENAME = "myResults.csv"
-INTEREST_COLUMN_NAME = "Interested?"
-LEADER_COLUMN_NAME = "Interested in leading?"
-NAME_COLUMN_NAME = "Name"
+INPUT_CSV_FILENAME = ""
+INTEREST_COLUMN_NAME = ""
+LEADER_COLUMN_NAME = ""
+NAME_COLUMN_NAME = ""
 
 LEADER_VALUE = 10000
 MIN_TEAM_SIZE = LEADER_VALUE + 2
@@ -369,7 +369,7 @@ OUTPUT_FILENAME = "CSVresult.csv"
 
 # RUN USER CODE
 
-RUN_USER_CODE = True
+RUN_USER_CODE = True 
 PRINT_RESULTS = True
 
 if RUN_USER_CODE:
@@ -413,13 +413,13 @@ if RUN_USER_CODE:
 
 # TESTS
 
-RUN_TESTS = True
+RUN_TESTS = False
 
 if RUN_TESTS:
-    testCsvFileName = "testCSVfile.csv"
+    testCsvFileName = "testCSVprocess.csv"
     testNameColumnName = "Name"
     testInterestColumnName = "Interested?"
-    testLeaderColumnName = "Leader"
+    testLeaderColumnName = "Leader?"
 
     testLeaderValue = 10000
     testMinTeamSize = testLeaderValue + 2
@@ -516,8 +516,8 @@ if RUN_TESTS:
 
     testResult = getFileMatrix(testOutputFilename)
     assert(testResult[0] == ["Gre"])
-    assert(testResult[1] == ["Cypher","2022/11/10 6:45:46 PM PST"])
-    assert(testResult[2] == ["Raze","2022/11/10 7:45:46 PM PST"])
+    assert(testResult[1] == ["Cypher","2022/11/10 5:45:49 PM PST"])
+    assert(testResult[2] == ["Raze","2022/11/10 5:45:52 PM PST"])
 
     # Additional testing
 
