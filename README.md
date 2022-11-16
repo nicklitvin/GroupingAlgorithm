@@ -4,6 +4,10 @@ The purpose of this project is to take the interest of students on working/leadi
 project, form teams given customizable constraints, and return a document containing
 the results.
 
+**match.py** randomly generates student input and forms groups based on custom arguments (no CSV file required)
+
+**combined.py** takes in CSV input, processes it, and outputs result
+
 # Requirements
 
 The CSV file containing the interests of the students must contain the following 3 columns (names of the columns don't have to be the same, but must serve the same purpose)
@@ -12,7 +16,7 @@ The CSV file containing the interests of the students must contain the following
 - Interested
 - Interested in Leading
 
-Example of acceptable CSV input file: (testCSVprocess.csv)
+Example of acceptable CSV input file exported directly from Google Form: (testCSVprocess.csv)
 
 ```
 Timestamp,Name,Random Question?,Interested?,Leader
@@ -22,10 +26,14 @@ Timestamp,Name,Random Question?,Interested?,Leader
 2022/11/10 7:45:46 PM PST,Raze,No,Red;Gre;Yel,Blu;Red;Yel
 ```
 
-It's important that the answers in the Interested?,Leader columns for every student are separated by semicolons
+Example of acceptable CSV input file exported from Google Sheets after import from Google Form:
+(same as file above except combined values such as "Blu;Red" are written as "Blu, Red")
 
-Downloading CSV file directing from Google Form will produce an
-acceptable file
+```
+2022/11/10 5:45:46 PM PST,Breach,Yes,"Blu, Red",Red
+2022/11/10 6:45:46 PM PST,Cypher,Yes,"Blu, Gre","Blu, Gre"
+2022/11/10 7:45:46 PM PST,Raze,No,"Red, Gre, Yel","Blu, Red, Yel"
+```
 
 # How to Run
 

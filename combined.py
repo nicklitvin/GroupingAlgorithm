@@ -29,6 +29,40 @@ def getHeaderNameToColumnIndex(matrix):
         dict[column] = index
     return dict
 
+def separateBySemicolons(info):
+    """
+    INPUT:
+    info: string of values separated by semicolons or commas
+
+    OUTPUT:
+    convertedInfo: same string of values by separated by semicolons ONLY
+    """
+    data = []
+
+    commaSeparatedInterestInfo = info.split(",")
+
+    for value in commaSeparatedInterestInfo:
+        data.append(value.strip())
+
+    convertedInfo = ";".join(data)
+    return convertedInfo
+
+def convertToProperCSV(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColumnName,leaderColumnName):
+    """
+    Takes in inputMatrixMinusHeaders and changes the delimeter of the values under interest/leader columns
+    to semicolons if it's not already in that form
+    """
+    interestColumnIndex = headerNameToColumnIndex[interestColumnName]
+    leaderColumnIndex = headerNameToColumnIndex[leaderColumnName]
+
+    for rowIndex,row in enumerate(inputMatrixMinusHeaders):
+        interestInfo = row[interestColumnIndex]
+        leaderInfo = row[leaderColumnIndex]
+
+        if len(interestInfo.split(";")) == 1 or len(leaderInfo.split(";")) == 1:
+            inputMatrixMinusHeaders[rowIndex][interestColumnIndex] = separateBySemicolons(interestInfo)
+            inputMatrixMinusHeaders[rowIndex][leaderColumnIndex] = separateBySemicolons(leaderInfo)
+
 def findAllProjects(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColumnName,leaderColumnName):
     """
     INPUT:
@@ -36,6 +70,7 @@ def findAllProjects(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColu
     headerNameToColumnIndex: dict mapping headerNames to corresponding columnIndex
     interestColumnName: name of column to look for project interest
     leaderColumnName: name of column to look for project leader interest
+
     OUTPUT:
     returns sorted list of all unique projects that have any interest from students and/or leaders
     """
@@ -55,9 +90,9 @@ def findAllProjects(inputMatrixMinusHeaders,headerNameToColumnIndex,interestColu
             interestProjectsList = []
         if leaderProjectsList[0] == '':
             leaderProjectsList = []
-
+        
         for projectName in interestProjectsList + leaderProjectsList:
-            interestedProjectsSet.add(projectName)
+            interestedProjectsSet.add(projectName.strip())
     
     result = list(interestedProjectsSet)
     result.sort()
@@ -319,10 +354,10 @@ def createCSVfile(
 
 # USER INPUT
 
-INPUT_CSV_FILENAME = ""
-INTEREST_COLUMN_NAME = ""
-LEADER_COLUMN_NAME = ""
-NAME_COLUMN_NAME = ""
+INPUT_CSV_FILENAME = "myResults.csv"
+INTEREST_COLUMN_NAME = "Interested?"
+LEADER_COLUMN_NAME = "Interested in leading?"
+NAME_COLUMN_NAME = "Name"
 
 LEADER_VALUE = 10000
 MIN_TEAM_SIZE = LEADER_VALUE + 2
@@ -342,6 +377,8 @@ if RUN_USER_CODE:
     inputMatrixMinusHeaders = inputMatrix[1:]
 
     headerNameToColumnIndex = getHeaderNameToColumnIndex(inputMatrix)
+    convertToProperCSV(inputMatrixMinusHeaders,headerNameToColumnIndex,INTEREST_COLUMN_NAME,LEADER_COLUMN_NAME)
+
     allProjectList = findAllProjects(
         inputMatrixMinusHeaders, headerNameToColumnIndex,INTEREST_COLUMN_NAME,
         LEADER_COLUMN_NAME
@@ -397,7 +434,6 @@ if RUN_TESTS:
         print("deleted existing output file")
     except:
         print("no output file exists before execution")
-
 
     testInputMatrix = getFileMatrix(testCsvFileName)
     testInputMatrixMinusHeaders = testInputMatrix[1:]
@@ -482,5 +518,32 @@ if RUN_TESTS:
     assert(testResult[0] == ["Gre"])
     assert(testResult[1] == ["Cypher","2022/11/10 6:45:46 PM PST"])
     assert(testResult[2] == ["Raze","2022/11/10 7:45:46 PM PST"])
+
+    # Additional testing
+
+    testInputMatrixMinusHeaders = [
+        ["",""],
+        ["red",""],
+        ["","blu"],
+        ["red, blu",""],
+        ["","red, blu"],
+        ["red, blu", "red,blu"],
+        ["red;blu", "red;blu"]
+    ]
+    testInterestColumnName = "interest"
+    testLeaderColumnName = "leader"
+    testHeaderNameToColumnIndex = {testInterestColumnName:0,testLeaderColumnName:1}
+
+    convertToProperCSV(testInputMatrixMinusHeaders,testHeaderNameToColumnIndex,testInterestColumnName,testLeaderColumnName)
+
+    assert (testInputMatrixMinusHeaders == [
+        ["",""],
+        ["red",""],
+        ["","blu"],
+        ["red;blu",""],
+        ["","red;blu"],
+        ["red;blu", "red;blu"],
+        ["red;blu", "red;blu"]
+    ])
 
     print("tests passed")
