@@ -85,8 +85,8 @@ To find total unique people interested in project, the total interest can be mod
 
 Teams are assigned based on constraints given using assignPlayersToProjects().
 
-The current method prioritizes projects with just enough interest to make a team and each
-team created is guaranteed to have 1 leader.
+The current method prioritizes projects with just enough interest to make 1 team followed by the
+more popular projects.
 
 
 ## Step 6)
