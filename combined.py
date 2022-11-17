@@ -190,6 +190,7 @@ def findBestSplit(count,minSize,maxSize):
     count: number of students to split
     minSize: smallest team size considered to make equal teams
     maxSize: teams cannot surpass this size
+    
     OUTPUT: (tuple)
     (bestSize, bestRemainder): size of each team, how many teams will have an extra member
     Goal is to minimize remainder, and maxamize team size
@@ -208,13 +209,14 @@ def findBestSplit(count,minSize,maxSize):
             bestSize = size
             bestRemainder = remainder 
     
+    if not bestSize:
+        bestSize = maxSize
+        bestRemainder = 0
+
     return (bestSize,bestRemainder)
 
-def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeamSize,maxTeamsPerProject,leaderValue):
+def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeamSize,maxTeamsPerProject,leaderValue,leadersPerTeam=1):
     """
-    INPUT
-    minTeamSize: minimum interest total required otherwise project is not happening
-    maxTeamSize: maximum interest total required (leaders may be converted to students)
     OUTPUT (tuple)
     unluckyProjects: list of projects that do not have any teams working on them
     teamsAssigned: dict that contains all projects, and the teams that will be working on them
@@ -225,12 +227,14 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
     peopleTaken = [0] * studentCount
     unluckyProjects = []
     teamsAssigned = {}
+
+    minTeamSizeValue = leadersPerTeam * leaderValue + minTeamSize
     
     for currentSummaryI in range(len(summary)):
         projectSummary = summary[currentSummaryI]
 
         # no way team can be made if not enough interest (in general)
-        if projectSummary[1] < minTeamSize:
+        if projectSummary[1] < minTeamSizeValue:
             unluckyProjects.append(projectSummary[0])
         else:
             studentsReady = []
@@ -245,28 +249,30 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
                         leadersReady.append(studentIndex)
 
             # check if there is enough available people to make a team, otherwise project is not happening
-            if len(studentsReady) + len(leadersReady) < minTeamSize % leaderValue:
+            if len(studentsReady) + len(leadersReady) < minTeamSize:
                 unluckyProjects.append(projectSummary[0])
                 continue
 
             # find best combo
             groupMin, remainder = findBestSplit(
                 len(studentsReady)+len(leadersReady),
-                minTeamSize % leaderValue,
-                maxTeamSize % leaderValue
+                minTeamSize,
+                maxTeamSize
             )
             
-            # create teams containing 1 leader and the rest are students
             teamsCreated = []
             currentStudent = 0
             currentLeader = 0
             
-            while currentLeader < len(leadersReady):
+            while currentLeader < len(leadersReady) and len(leadersReady) - currentLeader >= leadersPerTeam:
                 newTeam = []
-                newTeam.append(leadersReady[currentLeader])
-                currentLeader += 1
+                # add specified number of leaders to team
+                for _ in range(leadersPerTeam):
+                    newTeam.append(leadersReady[currentLeader])
+                    currentLeader += 1
                 
-                lastPlayer = currentStudent + groupMin - 1
+                # fill in the rest of the spots with students
+                lastPlayer = currentStudent + groupMin - leadersPerTeam
                 if remainder > 0:
                     lastPlayer += 1
                     remainder -= 1
@@ -274,7 +280,7 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
                 currentStudent = lastPlayer
 
                 # if no students left, but there are more leaders left, convert them to students
-                if len(newTeam) <= groupMin:
+                if len(newTeam) < groupMin:
                     lastLeader = currentLeader + groupMin - len(newTeam) - 1
                     newTeam += leadersReady[currentLeader:lastLeader + 1]
                     currentLeader = lastLeader + 1
@@ -285,7 +291,7 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
             teamsCreated = teamsCreated[:maxTeamsPerProject]
 
             # release last team if not enough members
-            if len(teamsCreated[-1]) < minTeamSize % leaderValue:
+            if teamsCreated and len(teamsCreated[-1]) < minTeamSize:
                 for studentIndex in teamsCreated[-1]:
                     peopleTaken[studentIndex] = 0
                 teamsCreated.pop()
@@ -309,6 +315,7 @@ def getStudentInfo(fileMatrixWithoutHeaders,studentIndex,headerAssociations,colu
     studentIndex: index of row corresponding to student
     headerAssociations: dict mapping columnNames to the columnIndex in the fileMatrix
     columnsToInclude: student responses these columns will be included
+    
     OUTPUT (string)
     row: student responses to columns indicated from input file and formats them in CSV format
     """
@@ -333,6 +340,7 @@ def createCSVfile(
     fileName: name of file to create with output
     teamsAssigned: dict of all projects and the teams working on each
     columnsToInclude: student responses to theses questions will be included in output
+
     OUTPUT: 
     None: CSV file is created with students listed under their assigned project
     """
@@ -354,22 +362,23 @@ def createCSVfile(
 
 # USER INPUT
 
-INPUT_CSV_FILENAME = ""
-INTEREST_COLUMN_NAME = ""
-LEADER_COLUMN_NAME = ""
-NAME_COLUMN_NAME = ""
+INPUT_CSV_FILENAME = "openProj.csv"
+INTEREST_COLUMN_NAME = "Interested?"
+LEADER_COLUMN_NAME = "Interested in leading?"
+NAME_COLUMN_NAME = "Name"
 
 LEADER_VALUE = 10000
-MIN_TEAM_SIZE = LEADER_VALUE + 2
-MAX_TEAM_SIZE = LEADER_VALUE + 3
+MIN_TEAM_SIZE = 2
+MAX_TEAM_SIZE = 3
 MAX_TEAMS_PER_PROJECT = 1
+LEADERS_PER_TEAM = 2
 
 OUTPUT_COLUMNS = ["Name","Email"]
 OUTPUT_FILENAME = "CSVresult.csv"
 
 # RUN USER CODE
 
-RUN_USER_CODE = True 
+RUN_USER_CODE = True
 PRINT_RESULTS = True
 
 if RUN_USER_CODE:
@@ -397,7 +406,7 @@ if RUN_USER_CODE:
 
     unpopular, projectTeams, sadPeople = assignPlayersToProjects(
         summary, preferences, len(studentNamesToRowIndex.keys()), MIN_TEAM_SIZE,
-        MAX_TEAM_SIZE, MAX_TEAMS_PER_PROJECT, LEADER_VALUE
+        MAX_TEAM_SIZE, MAX_TEAMS_PER_PROJECT, LEADER_VALUE, LEADERS_PER_TEAM
     )
 
     if PRINT_RESULTS:
@@ -413,7 +422,7 @@ if RUN_USER_CODE:
 
 # TESTS
 
-RUN_TESTS = False
+RUN_TESTS = True
 
 if RUN_TESTS:
     testCsvFileName = "testCSVprocess.csv"
@@ -422,8 +431,8 @@ if RUN_TESTS:
     testLeaderColumnName = "Leader?"
 
     testLeaderValue = 10000
-    testMinTeamSize = testLeaderValue + 2
-    testMaxTeamSize = testLeaderValue + 3
+    testMinTeamSize = 2
+    testMaxTeamSize = 3
     testMaxTeamsPerProject = 1
 
     testOutputColumns = ["Name","Timestamp"]
@@ -519,7 +528,7 @@ if RUN_TESTS:
     assert(testResult[1] == ["Cypher","2022/11/10 5:45:49 PM PST"])
     assert(testResult[2] == ["Raze","2022/11/10 5:45:52 PM PST"])
 
-    # Additional testing
+    # testing csv conversion to matrix
 
     testInputMatrixMinusHeaders = [
         ["",""],
@@ -545,5 +554,72 @@ if RUN_TESTS:
         ["red;blu", "red;blu"],
         ["red;blu", "red;blu"]
     ])
+
+    # testing best splits
+
+    assert(findBestSplit(21,5,7) == (7,0))
+    assert(findBestSplit(16,5,7) == (5,1))
+    assert(findBestSplit(10,5,8) == (5,0))
+    assert(findBestSplit(3,3,4) == (3,0))
+
+    # testing team assignment
+
+    testPreferences = [
+        [10001, 0,      0],
+        [1,     0,      0],
+        [0,     0,  10001],
+        [10001, 0,      0],
+        [0,     0,      1],
+        [0,     10001,  0],
+        [0,     10001,  0],
+        [0,     0,  10001],
+        [1,     0,      1],
+        [0,     10001,  1]
+    ]
+
+    testSummary = summarizePreferences(testPreferences)
+    assert(testSummary == [[0,20004],[2,20005],[1,30003]])
+
+    testNumberOfLeaders = 2
+    testUnluckyProjects, testTeamsAssigned, testSadCount = assignPlayersToProjects(
+        testSummary,testPreferences,len(testPreferences),3,4,1,10000,testNumberOfLeaders
+    )
+
+    for projectNumber, teams in testTeamsAssigned.items():
+        for team in teams:
+            for i in range(testNumberOfLeaders):
+                assert(testPreferences[team[i]][projectNumber] > 1)
+
+    testNumberOfLeaders = 3
+    testUnluckyProjects, testTeamsAssigned, testSadCount = assignPlayersToProjects(
+        testSummary,testPreferences,len(testPreferences),3,4,1,10000,testNumberOfLeaders
+    )
+
+    for projectNumber, teams in testTeamsAssigned.items():
+        for team in teams:
+            for i in range(testNumberOfLeaders):
+                assert(testPreferences[team[i]][projectNumber] > 1)
+
+    # testing team assignment bug
+
+    testPreferences = [
+        [10001, 0],
+        [1,     0],
+        [10001, 0],
+        [10001, 0]
+    ]
+
+    testSummary = summarizePreferences(testPreferences)
+    assert(testSummary == [[1,0],[0,30004]])
+
+    testNumberOfLeaders = 2
+    testUnluckyProjects, testTeamsAssigned, testSadCount = assignPlayersToProjects(
+        testSummary,testPreferences,len(testPreferences),3,3,1,10000,testNumberOfLeaders
+    )
+
+    for projectNumber, teams in testTeamsAssigned.items():
+        for team in teams:
+            for i in range(testNumberOfLeaders):
+                assert(testPreferences[team[i]][projectNumber] > 1)
 
     print("tests passed")
