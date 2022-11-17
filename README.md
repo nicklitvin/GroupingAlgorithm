@@ -44,6 +44,7 @@ Timestamp,Name,Random Question?,Interested?,Leader
 - Edit input/output file names, team constraints, and output format in **combined.py**  under **#USER INPUT**
 
 - Run the following code in the terminal
+
 ```
 py ./combined.py
 ```

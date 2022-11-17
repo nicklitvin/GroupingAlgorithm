@@ -117,6 +117,20 @@ def makeProjectAssociations(projectNames):
     
     return (projectNameToIndex,indexToProjectName)
 
+def getLeaderValue(inputMatrixMinusHeaders):
+    """
+    Finds leader value in order to differentiate between students and leaders. Leader
+    value is guaranteed to be greater than the total number of students. Minimum value
+    is 10.
+    """
+    totalStudents = len(inputMatrixMinusHeaders)
+    leaderValue = 10
+
+    while leaderValue < totalStudents:
+        leaderValue *= 10
+    
+    return leaderValue
+
 def addStudents(inputMatrixMinusHeaders,projectNamesToColumnIndex,headerNameToColumnIndex,
     leaderValue,interestColumnName,leaderColumnName,nameColumnName
 ):
@@ -367,7 +381,6 @@ INTEREST_COLUMN_NAME = "Interested?"
 LEADER_COLUMN_NAME = "Interested in leading?"
 NAME_COLUMN_NAME = "Name"
 
-LEADER_VALUE = 10000
 MIN_TEAM_SIZE = 2
 MAX_TEAM_SIZE = 3
 MAX_TEAMS_PER_PROJECT = 1
@@ -384,6 +397,7 @@ PRINT_RESULTS = True
 if RUN_USER_CODE:
     inputMatrix = getFileMatrix(INPUT_CSV_FILENAME)
     inputMatrixMinusHeaders = inputMatrix[1:]
+    LEADER_VALUE = getLeaderValue(inputMatrixMinusHeaders)
 
     headerNameToColumnIndex = getHeaderNameToColumnIndex(inputMatrix)
     convertToProperCSV(inputMatrixMinusHeaders,headerNameToColumnIndex,INTEREST_COLUMN_NAME,LEADER_COLUMN_NAME)
@@ -422,7 +436,7 @@ if RUN_USER_CODE:
 
 # TESTS
 
-RUN_TESTS = True
+RUN_TESTS = False
 
 if RUN_TESTS:
     testCsvFileName = "testCSVprocess.csv"
@@ -430,7 +444,6 @@ if RUN_TESTS:
     testInterestColumnName = "Interested?"
     testLeaderColumnName = "Leader?"
 
-    testLeaderValue = 10000
     testMinTeamSize = 2
     testMaxTeamSize = 3
     testMaxTeamsPerProject = 1
@@ -446,6 +459,8 @@ if RUN_TESTS:
 
     testInputMatrix = getFileMatrix(testCsvFileName)
     testInputMatrixMinusHeaders = testInputMatrix[1:]
+
+    testLeaderValue = getLeaderValue(testInputMatrixMinusHeaders)
 
     testHeaderNameToColumnIndex = getHeaderNameToColumnIndex(testInputMatrix)
     assert(len(testHeaderNameToColumnIndex) == 5)
@@ -621,5 +636,15 @@ if RUN_TESTS:
         for team in teams:
             for i in range(testNumberOfLeaders):
                 assert(testPreferences[team[i]][projectNumber] > 1)
+
+    # testing leaderValue generation
+
+    testInputMatrixMinusHeaders = []
+
+    for _ in range(259):
+        testInputMatrixMinusHeaders.append([])
+    
+    testLeaderValue = getLeaderValue(testInputMatrixMinusHeaders)
+    assert(testLeaderValue == 1000)
 
     print("tests passed")
