@@ -4,9 +4,15 @@ The purpose of this project is to take the interest of students on working/leadi
 project, form teams given customizable constraints, and return a document containing
 the results.
 
+**main.py** main file, add your inputs here
+
 **match.py** randomly generates student input and forms groups based on custom arguments (no CSV file required)
 
 **combined.py** takes in CSV input, processes it, and outputs result
+
+**test.py** test file for combined.py
+
+**testCSVprocess.csv** example of acceptable csv input
 
 # Requirements
 
@@ -41,12 +47,12 @@ Timestamp,Name,Random Question?,Interested?,Leader
 
 - Place your CSV file in the same directory as **combined.py**
 
-- Edit input/output file names, team constraints, and output format in **combined.py**  under **#USER INPUT**
+- Edit input/output file names, team constraints, and output format in **main.py**  under **USER INPUT**
 
 - Run the following code in the terminal
 
 ```
-py ./combined.py
+py ./main.py
 ```
 
 # How the code works
