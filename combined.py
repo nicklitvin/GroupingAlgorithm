@@ -319,8 +319,13 @@ def assignPlayersToProjects(summary,preferences,studentCount,minTeamSize,maxTeam
 
     sadPlayerCount = len(peopleTaken) - sum(peopleTaken)
     unluckyProjects.sort()
+
+    sadList = []
+    for index in range(len(peopleTaken)):
+        if peopleTaken[index] == 0:
+            sadList.append(index)
     
-    return unluckyProjects,teamsAssigned,sadPlayerCount
+    return unluckyProjects,teamsAssigned,sadPlayerCount,sadList
 
 def getStudentInfo(fileMatrixWithoutHeaders,studentIndex,headerAssociations,columnsToInclude):
     """
@@ -347,7 +352,7 @@ def getStudentInfo(fileMatrixWithoutHeaders,studentIndex,headerAssociations,colu
 
 def createCSVfile(
     fileName,teamsAssigned,matrixMinusHeader,projectIndexToProjectName,
-    headerNameToColumnIndex,columnsToInclude
+    headerNameToColumnIndex,columnsToInclude, sadList
 ):
     """
     INPUT:
@@ -373,6 +378,16 @@ def createCSVfile(
                     file.write(f"{studentInfo}\n")
 
                 file.write("\n")
+        
+        file.write(f"UNASSIGNED\n")
+
+        for sadPersonsIndex in sadList:
+            studentInfo = getStudentInfo(matrixMinusHeader,sadPersonsIndex,
+                headerNameToColumnIndex,columnsToInclude
+            )
+            file.write(f"{studentInfo}\n")
+
+        file.write("\n")
 
 def run(inputCSVfilename,interestColumnName,leaderColumnName,nameColumnName,minTeamSize,maxTeamSize,maxTeamsPerProject,
     leadersPerTeam,outputFilename,outputColumns,printResults=True):
@@ -400,7 +415,7 @@ def run(inputCSVfilename,interestColumnName,leaderColumnName,nameColumnName,minT
 
         summary = summarizePreferences(preferences)
 
-        unpopular, projectTeams, sadPeople = assignPlayersToProjects(
+        unpopular, projectTeams, sadPeople, sadList = assignPlayersToProjects(
             summary, preferences, len(studentNamesToRowIndex.keys()), minTeamSize,
             maxTeamSize, maxTeamsPerProject, LEADER_VALUE, leadersPerTeam
         )
@@ -413,7 +428,7 @@ def run(inputCSVfilename,interestColumnName,leaderColumnName,nameColumnName,minT
         
         createCSVfile(
             outputFilename,projectTeams,inputMatrixMinusHeaders,
-            projectIndexToProjectNames,headerNameToColumnIndex,outputColumns
+            projectIndexToProjectNames,headerNameToColumnIndex,outputColumns, sadList
         )
         print("\nGROUPING COMPLETE")
     except:

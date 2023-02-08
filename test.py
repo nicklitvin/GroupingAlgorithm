@@ -75,7 +75,7 @@ def runTests():
         [0,2*(testLeaderValue + 1) + 1]
     ])
 
-    testUnpopular, testProjectTeams, testSadPeople = C.assignPlayersToProjects(
+    testUnpopular, testProjectTeams, testSadPeople, testSadList = C.assignPlayersToProjects(
         testSummary, testPreferences, len(testStudentNamesToRowIndex.keys()), testMinTeamSize, 
         testMaxTeamSize, testMaxTeamsPerProject, testLeaderValue
     )
@@ -97,7 +97,8 @@ def runTests():
 
     C.createCSVfile(
         testOutputFilename,testProjectTeams,testInputMatrixMinusHeaders,
-        testProjectIndexToProjectNames,testHeaderNameToColumnIndex,testOutputColumns
+        testProjectIndexToProjectNames,testHeaderNameToColumnIndex,testOutputColumns,
+        testSadList
     )
 
     testResult = C.getFileMatrix(testOutputFilename)
@@ -158,7 +159,7 @@ def runTests():
     assert(testSummary == [[0,20004],[2,20005],[1,30003]])
 
     testNumberOfLeaders = 2
-    testUnluckyProjects, testTeamsAssigned, testSadCount = C.assignPlayersToProjects(
+    testUnluckyProjects, testTeamsAssigned, testSadCount, testSadList = C.assignPlayersToProjects(
         testSummary,testPreferences,len(testPreferences),3,4,1,10000,testNumberOfLeaders
     )
 
@@ -168,7 +169,7 @@ def runTests():
                 assert(testPreferences[team[i]][projectNumber] > 1)
 
     testNumberOfLeaders = 3
-    testUnluckyProjects, testTeamsAssigned, testSadCount = C.assignPlayersToProjects(
+    testUnluckyProjects, testTeamsAssigned, testSadCount, testSadList = C.assignPlayersToProjects(
         testSummary,testPreferences,len(testPreferences),3,4,1,10000,testNumberOfLeaders
     )
 
@@ -190,9 +191,11 @@ def runTests():
     assert(testSummary == [[1,0],[0,30004]])
 
     testNumberOfLeaders = 2
-    testUnluckyProjects, testTeamsAssigned, testSadCount = C.assignPlayersToProjects(
+    testUnluckyProjects, testTeamsAssigned, testSadCount, testSadList = C.assignPlayersToProjects(
         testSummary,testPreferences,len(testPreferences),3,3,1,10000,testNumberOfLeaders
     )
+
+    assert(len(testSadList) == 1 and testSadList[0] == 3)
 
     for projectNumber, teams in testTeamsAssigned.items():
         for team in teams:
